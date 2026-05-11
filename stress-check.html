@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ストレスチェック</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F4F6F9;--card:#fff;--border:#E2E8F0;--text:#1A202C;--tsec:#64748B;--pri:#2563EB;--priL:#DBEAFE;--priD:#1D4ED8;--ok:#059669;--okL:#D1FAE5;--r:12px;--rs:8px}
+html,body{height:100%;font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.wrap{max-width:520px;margin:0 auto;padding:16px 16px 80px}
+.hdr{text-align:center;padding:24px 0 16px}
+.hdr h1{font-size:17px;font-weight:700;color:var(--pri)}
+.hdr p{font-size:11px;color:var(--tsec);margin-top:4px}
+.card{background:var(--card);border-radius:var(--r);padding:20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card-t{font-size:14px;font-weight:600;margin-bottom:14px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:12px;font-weight:500;color:var(--tsec);margin-bottom:4px}
+.fg input,.fg select{width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rs);outline:none;-webkit-appearance:none;appearance:none;background:var(--card)}
+.fg input:focus,.fg select:focus{border-color:var(--pri)}
+.fg select{background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%2364748B' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 12px center}
+.prog{position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 0}
+.prog-bar{height:6px;background:#E2E8F0;border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;background:var(--pri);border-radius:99px;transition:width .3s}
+.prog-txt{display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--tsec)}
+.sec-hdr{background:var(--priL);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.sec-hdr h2{font-size:14px;font-weight:600;color:var(--priD)}
+.sec-hdr p{font-size:11px;color:var(--tsec);margin-top:2px}
+.qcard{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.qnum{font-size:10px;font-weight:700;color:var(--pri);margin-bottom:4px}
+.qtxt{font-size:13px;line-height:1.6;margin-bottom:12px}
+.opts{display:flex;gap:6px;flex-wrap:wrap}
+.opt{flex:1;min-width:0;text-align:center;font-family:inherit;font-size:11px;padding:8px 4px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--card);color:var(--tsec);cursor:pointer;transition:all .15s;line-height:1.3}
+.opt:hover{border-color:var(--pri);color:var(--pri)}
+.opt.on{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.nav-btns{display:flex;gap:10px;margin-top:16px}
+.nb{flex:1;font-family:inherit;font-size:14px;font-weight:600;padding:14px;border-radius:var(--r);border:none;cursor:pointer;transition:all .15s}
+.nb.prev{background:var(--card);color:var(--tsec);border:1px solid var(--border)}
+.nb.prev:hover{background:#F1F5F9}
+.nb.next{background:var(--pri);color:#fff}.nb.next:hover{background:var(--priD)}
+.nb:disabled{opacity:.4;cursor:not-allowed}
+.done{text-align:center;padding:40px 20px}
+.done-ic{width:64px;height:64px;border-radius:50%;background:var(--okL);display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px}
+.done-ic svg{width:32px;height:32px;color:var(--ok)}
+.done h2{font-size:18px;font-weight:700;margin-bottom:8px}
+.done p{font-size:13px;color:var(--tsec)}
+.err-msg{font-size:11px;color:#DC2626;margin-top:4px;display:none}
+@media(max-width:380px){.opt{font-size:10px;padding:7px 2px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hdr"><h1>ストレスチェック</h1><p>職業性ストレス簡易調査票（57項目）</p></div>
+<div id="app"></div>
+</div>
+<script>
+var GAS_URL='https://script.google.com/macros/s/AKfycbyX08Puy_boj7BwlPo6KJsTBP-_QoolwDOYzPu7Es0jcb1eQ92LTcY5pIa9TLvE4PT5/exec';
+var DEPTS=['名古屋FW','名古屋TF','名古屋TF ANNEXE 分室','東京FW','メディアリサーチ事業部 ANNEXE','フード・リテール事業部 Cache-Cache','監査役','JDS'];
+var answers={};
+var step=0; // 0=profile, 1=A, 2=B, 3=C, 4=D, 5=confirm, 6=done
+var profile={name:'',kana:'',dob:'',sex:'',dept:''};
+
+var QA=[
+'非常にたくさんの仕事をしなければならない','時間内に仕事が処理しきれない','一生懸命働かなければならない','かなり注意を集中する必要がある','高度の知識や技術が必要なむずかしい仕事だ','勤務時間中はいつも仕事のことを考えていなければならない','からだを大変よく使う仕事だ','自分のペースで仕事ができる','自分で仕事の順番・やり方を決めることができる','職場の仕事の方針に自分の意見を反映できる','自分の技能や知識を仕事で使うことが少ない','私の部署内で意見のくい違いがある','私の部署と他の部署とはうまが合わない','私の職場の雰囲気は友好的である','私の職場の作業環境（騒音、照明、温度、換気など）はよくない','仕事の内容は自分にあっている','働きがいのある仕事だ'
+];
+var QB=[
+'活気がわいてくる','元気がいっぱいだ','生き生きする','怒りを感じる','内心腹立たしい','イライラしている','ひどく疲れた','へとへとだ','だるい','気がはりつめている','不安だ','落ち着かない','ゆううつだ','何をするのも面倒だ','物事に集中できない','気分が晴れない','仕事が手につかない','悲しいと感じる','めまいがする','体のふしぶしが痛む','頭が重かったり頭痛がする','首筋や肩がこる','腰が痛い','目が疲れる','動悸や息切れがする','胃腸の具合が悪い','食欲がない','便秘や下痢をする','よく眠れない'
+];
+var QC=[
+'上司と気軽に話せる','同僚と気軽に話せる','家族・友人と気軽に話せる','上司が頼りになる','同僚が頼りになる','家族・友人が頼りになる','上司が相談にのってくれる','同僚が相談にのってくれる','家族・友人が相談にのってくれる'
+];
+var QD=['仕事に満足だ','家庭生活に満足だ'];
+
+var OA=['そうだ','まあそうだ','ちがう','かなりちがう'];
+var OB=['ほとんどなかった','ときどきあった','しばしばあった','ほとんどいつもあった'];
+var OC=['非常に','かなり','多少','全くない'];
+var OD=['満足','まあ満足','やや不満','不満足'];
+
+var secs=[
+{key:'A',q:QA,o:OA,title:'A — あなたの仕事について',desc:'最もあてはまるものを選んでください（17問）'},
+{key:'B',q:QB,o:OB,title:'B — 最近1か月の状態',desc:'最近1か月間のあなたの状態について（29問）'},
+{key:'C',q:QC,o:OC,title:'C — 周りの方々について',desc:'あなたの周りの方々について（9問）'},
+{key:'D',q:QD,o:OD,title:'D — 満足度について',desc:'満足度について（2問）'}
+];
+
+function render(){
+  var app=document.getElementById('app');
+  if(step===0){renderProfile(app);return;}
+  if(step>=1&&step<=4){renderSection(app,step-1);return;}
+  if(step===5){renderConfirm(app);return;}
+  if(step===6){renderDone(app);return;}
+}
+function renderProfile(el){
+  var h='<div class="card"><div class="card-t">基本情報</div>';
+  h+='<div class="fg"><label>氏名 <span style="color:#DC2626">*</span></label><input type="text" id="f-name" value="'+esc(profile.name)+'" placeholder="山田太郎"></div>';
+  h+='<div class="fg"><label>フリガナ <span style="color:#DC2626">*</span></label><input type="text" id="f-kana" value="'+esc(profile.kana)+'" placeholder="ヤマダタロウ"></div>';
+  h+='<div class="fg"><label>生年月日</label><input type="date" id="f-dob" value="'+profile.dob+'"></div>';
+  h+='<div class="fg"><label>性別</label><select id="f-sex"><option value="">選択してください</option><option'+(profile.sex==='男性'?' selected':'')+'>男性</option><option'+(profile.sex==='女性'?' selected':'')+'>女性</option><option'+(profile.sex==='その他'?' selected':'')+'>その他</option></select></div>';
+  h+='<div class="fg"><label>所属部署 <span style="color:#DC2626">*</span></label><select id="f-dept"><option value="">選択してください</option>';
+  DEPTS.forEach(function(d){h+='<option'+(profile.dept===d?' selected':'')+'>'+d+'</option>';});
+  h+='</select></div>';
+  h+='<div class="err-msg" id="prof-err"></div>';
+  h+='</div>';
+  h+='<div class="nav-btns"><button class="nb next" onclick="nextStep()">回答を開始する →</button></div>';
+  el.innerHTML=h;
+}
+function renderSection(el,si){
+  var s=secs[si];var total=57;
+  var done=0;for(var k in answers)done++;
+  var pct=Math.round(done/total*100);
+  var h='<div class="prog"><div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%"></div></div><div class="prog-txt"><span>'+done+' / '+total+'</span><span>'+pct+'%</span></div></div>';
+  h+='<div class="sec-hdr"><h2>'+s.title+'</h2><p>'+s.desc+'</p></div>';
+  for(var i=0;i<s.q.length;i++){
+    var qk=s.key+(i+1);var cur=answers[qk]||0;
+    h+='<div class="qcard"><div class="qnum">'+qk+'</div><div class="qtxt">'+s.q[i]+'</div><div class="opts">';
+    for(var j=0;j<s.o.length;j++){
+      var v=j+1;var on=cur===v?' on':'';
+      h+='<button class="opt'+on+'" onclick="pick(\''+qk+'\','+v+',this)">'+s.o[j]+'</button>';
+    }
+    h+='</div></div>';
+  }
+  h+='<div class="err-msg" id="sec-err"></div>';
+  h+='<div class="nav-btns"><button class="nb prev" onclick="prevStep()">← 戻る</button><button class="nb next" onclick="nextStep()">次へ →</button></div>';
+  el.innerHTML=h;
+  window.scrollTo(0,0);
+}
+function renderConfirm(el){
+  var total=57;var done=0;for(var k in answers)done++;
+  var h='<div class="card"><div class="card-t">内容確認</div>';
+  h+='<p style="font-size:13px;color:var(--tsec);margin-bottom:12px">以下の内容で送信します。</p>';
+  h+='<div style="font-size:12px;line-height:2;background:var(--bg);padding:12px;border-radius:var(--rs)">';
+  h+='<strong>氏名：</strong>'+esc(profile.name)+'<br>';
+  h+='<strong>フリガナ：</strong>'+esc(profile.kana)+'<br>';
+  h+='<strong>所属部署：</strong>'+esc(profile.dept)+'<br>';
+  h+='<strong>回答数：</strong>'+done+' / '+total+'</div></div>';
+  h+='<div class="nav-btns"><button class="nb prev" onclick="prevStep()">← 戻る</button><button class="nb next" id="submit-btn" onclick="doSubmit()">送信する</button></div>';
+  el.innerHTML=h;
+  window.scrollTo(0,0);
+}
+function renderDone(el){
+  el.innerHTML='<div class="done"><div class="done-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></div><h2>回答を受け付けました</h2><p>ご協力ありがとうございました。<br>このページを閉じてください。</p></div>';
+  window.scrollTo(0,0);
+}
+function pick(qk,v,btn){
+  answers[qk]=v;
+  var opts=btn.parentNode.querySelectorAll('.opt');
+  opts.forEach(function(o){o.classList.remove('on');});
+  btn.classList.add('on');
+}
+function nextStep(){
+  if(step===0){
+    profile.name=document.getElementById('f-name').value.trim();
+    profile.kana=document.getElementById('f-kana').value.trim();
+    profile.dob=document.getElementById('f-dob').value;
+    profile.sex=document.getElementById('f-sex').value;
+    profile.dept=document.getElementById('f-dept').value;
+    var err=document.getElementById('prof-err');
+    if(!profile.name||!profile.kana||!profile.dept){err.textContent='氏名・フリガナ・所属部署は必須です';err.style.display='block';return;}
+    err.style.display='none';
+  }
+  if(step>=1&&step<=4){
+    var s=secs[step-1];var missing=[];
+    for(var i=1;i<=s.q.length;i++){if(!answers[s.key+i])missing.push(s.key+i);}
+    if(missing.length){var err=document.getElementById('sec-err');err.textContent='未回答: '+missing.join(', ');err.style.display='block';return;}
+  }
+  step++;render();
+}
+function prevStep(){if(step>0){step--;render();}}
+function doSubmit(){
+  var btn=document.getElementById('submit-btn');btn.disabled=true;btn.textContent='送信中...';
+  var payload={action:'submitStressCheck',name:profile.name,kana:profile.kana,dob:profile.dob,sex:profile.sex,dept:profile.dept,answers:answers};
+  fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).then(function(r){return r.json();}).then(function(d){
+    if(d.success){step=6;render();}else{alert('エラー: '+(d.error||'送信失敗'));btn.disabled=false;btn.textContent='送信する';}
+  }).catch(function(e){alert('通信エラー: '+e.message);btn.disabled=false;btn.textContent='送信する';});
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+render();
+</script>
+</body>
+</html>
