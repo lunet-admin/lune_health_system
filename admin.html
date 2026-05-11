@@ -145,7 +145,7 @@ tr:hover td{background:var(--hover)}
 </div>
 <div class="toast" id="toast"></div>
 <script>
-var GAS=localStorage.getItem('health_gas_url')||'';
+var GAS='https://script.google.com/macros/s/AKfycbyYoUJgpvHLgbhjMdBd7EksLSD35CaP_uNVCHuLbH38LXhjhVIj0_XU6cCjK2xe0luy/exec';
 var scD=[],hlD=[],scF='all',dlF='all';
 var titles={'dash':'ダッシュボード','sc-results':'結果一覧','sc-detail':'回答詳細','health':'健康診断 提出状況','setup':'接続設定'};
 function go(id,el){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});document.getElementById('p-'+id).classList.add('on');document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});if(el)el.classList.add('on');document.getElementById('tt').textContent=titles[id]||'';if(id==='dash')loadDash();if(id==='sc-results')loadSC();if(id==='sc-detail')loadDL();if(id==='health')loadHL();if(id==='setup')document.getElementById('gas-url').value=GAS;}
