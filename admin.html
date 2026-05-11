@@ -88,8 +88,6 @@ tr:hover td{background:var(--hover)}
     <div class="ni" onclick="go('sc-detail',this)"><i class="ti ti-file-analytics"></i>回答詳細</div>
     <div class="nav-sec">健康診断</div>
     <div class="ni" onclick="go('health',this)"><i class="ti ti-stethoscope"></i>提出状況</div>
-    <div class="nav-sec">システム</div>
-    <div class="ni" onclick="go('setup',this)"><i class="ti ti-plug-connected"></i>接続設定</div>
   </div>
   <div class="side-foot">衛生管理システム v1.0</div>
 </div>
@@ -131,15 +129,6 @@ tr:hover td{background:var(--hover)}
       </div></div>
       <div id="hl-pdf" style="display:none"></div>
     </div>
-    <!-- SETUP -->
-    <div class="page" id="p-setup">
-      <div class="card"><div class="card-h"><span class="card-t"><i class="ti ti-plug-connected" style="color:var(--pri)"></i> GAS接続設定</span></div>
-        <div class="setup-box"><strong>セットアップ手順：</strong><br>① Googleスプレッドシートを新規作成<br>② 「拡張機能」→「Apps Script」<br>③ health_gas_script.js を貼り付けて保存<br>④ 「デプロイ」→「新しいデプロイ」→「ウェブアプリ」<br>⑤ アクセス：「全員」→ デプロイ → URLをコピー<br>⑥ 下に貼り付けて「接続テスト」</div>
-        <div class="fgr" style="margin-bottom:1rem"><label>GAS URL</label><input type="text" id="gas-url" placeholder="https://script.google.com/macros/s/xxxx/exec" style="font-size:11px"></div>
-        <div style="display:flex;gap:8px"><button class="btn bp bi" onclick="testConn()"><i class="ti ti-plug-connected" style="font-size:13px"></i>接続テスト</button><button class="btn bi" onclick="saveUrl()"><i class="ti ti-device-floppy" style="font-size:13px"></i>保存</button></div>
-        <p id="setup-msg" style="font-size:11px;margin-top:8px;color:var(--tsec)"></p>
-      </div>
-    </div>
   </div>
 </div>
 </div>
@@ -147,8 +136,8 @@ tr:hover td{background:var(--hover)}
 <script>
 var GAS='https://script.google.com/macros/s/AKfycbyYoUJgpvHLgbhjMdBd7EksLSD35CaP_uNVCHuLbH38LXhjhVIj0_XU6cCjK2xe0luy/exec';
 var scD=[],hlD=[],scF='all',dlF='all';
-var titles={'dash':'ダッシュボード','sc-results':'結果一覧','sc-detail':'回答詳細','health':'健康診断 提出状況','setup':'接続設定'};
-function go(id,el){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});document.getElementById('p-'+id).classList.add('on');document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});if(el)el.classList.add('on');document.getElementById('tt').textContent=titles[id]||'';if(id==='dash')loadDash();if(id==='sc-results')loadSC();if(id==='sc-detail')loadDL();if(id==='health')loadHL();if(id==='setup')document.getElementById('gas-url').value=GAS;}
+var titles={'dash':'ダッシュボード','sc-results':'結果一覧','sc-detail':'回答詳細','health':'健康診断 提出状況'};
+function go(id,el){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});document.getElementById('p-'+id).classList.add('on');document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});if(el)el.classList.add('on');document.getElementById('tt').textContent=titles[id]||'';if(id==='dash')loadDash();if(id==='sc-results')loadSC();if(id==='sc-detail')loadDL();if(id==='health')loadHL();}
 function doRefresh(){var a=document.querySelector('.page.on');if(a){var id=a.id.replace('p-','');go(id,document.querySelector('.ni.on'));}toast('更新しました','ok');}
 function gGet(a,cb){if(!GAS){toast('GAS URLが未設定です','err');return;}fetch(GAS+'?action='+a).then(function(r){return r.json();}).then(cb).catch(function(e){toast('通信エラー','err');});}
 function gPost(d,cb){if(!GAS){toast('GAS URLが未設定です','err');return;}fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(cb).catch(function(e){toast('通信エラー','err');});}
