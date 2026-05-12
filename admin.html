@@ -82,6 +82,7 @@ tr:hover td{background:var(--hover)}
 .ld{text-align:center;padding:2rem;color:var(--tsec);font-size:12px}
 .ld i{font-size:22px;display:block;margin-bottom:6px;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+.refreshing{animation:sp .8s linear infinite}
 .toast{position:fixed;top:16px;right:16px;padding:10px 18px;border-radius:var(--rs);color:#fff;font-size:12px;font-weight:500;z-index:9999;opacity:0;transform:translateY(-10px);transition:all .3s}
 .toast.show{opacity:1;transform:translateY(0)}.toast.ok{background:var(--ok)}.toast.err{background:var(--ng)}
 .sbar{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--blight)}.sbar:last-child{border-bottom:none}
@@ -120,7 +121,7 @@ tr:hover td{background:var(--hover)}
   <div class="side-foot">衛生管理システム v1.1</div>
 </div>
 <div class="main">
-  <div class="top"><button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button><div class="top-title" id="tt">ダッシュボード</div><div class="top-r"><div class="ib" title="更新" onclick="doRefresh()"><i class="ti ti-refresh"></i></div></div></div>
+  <div class="top"><button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button><div class="top-title" id="tt">ダッシュボード</div><div class="top-r"><div class="ib" id="refresh-btn" title="データを最新に更新" onclick="doRefresh()" style="cursor:pointer"><i class="ti ti-rotate-clockwise" id="refresh-icon"></i></div></div></div>
   <div class="cnt">
     <!-- DASH -->
     <div class="page on" id="p-dash">
@@ -183,29 +184,80 @@ var scD=[],hlD=[],empD=[],scF='all',empFType='all';
 var DEPTS=['名古屋FW','名古屋TF','名古屋TF ANNEXE 分室','東京FW','メディアリサーチ事業部 ANNEXE','フード・リテール事業部 Cache-Cache','監査役','JDS'];
 var ETYPES=['正社員','契約社員','パート・アルバイト','派遣社員','嘱託社員','業務委託'];
 var titles={'dash':'ダッシュボード','sc':'結果一覧','health':'健康診断 提出状況','emp':'社員管理'};
+var cache={dash:null,sc:null,hl:null,emp:null};
+var dataLoaded=false;
+
 function toggleMenu(){var s=document.getElementById('sidebar');var o=document.getElementById('overlay');var h=document.getElementById('hamburger');s.classList.toggle('open');o.classList.toggle('show');h.classList.toggle('open');}
 function closeMenu(){var s=document.getElementById('sidebar');var o=document.getElementById('overlay');var h=document.getElementById('hamburger');s.classList.remove('open');o.classList.remove('show');h.classList.remove('open');}
-function go(id,el){closeMenu();document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});document.getElementById('p-'+id).classList.add('on');document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});if(el)el.classList.add('on');document.getElementById('tt').textContent=titles[id]||'';if(id==='dash')loadDash();if(id==='sc')loadSC();if(id==='health')loadHL();if(id==='emp')loadEmp();}
-function doRefresh(){var a=document.querySelector('.page.on');if(a){var id=a.id.replace('p-','');go(id,document.querySelector('.ni.on'));}toast('更新しました','ok');}
+function go(id,el){closeMenu();document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});document.getElementById('p-'+id).classList.add('on');document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});if(el)el.classList.add('on');document.getElementById('tt').textContent=titles[id]||'';showFromCache(id);}
+function showFromCache(id){
+  if(!dataLoaded)return;
+  if(id==='dash')renderDash();
+  if(id==='sc'){setLastSeen('sc');setBadge('badge-sc',0);document.getElementById('sc-list').style.display='block';document.getElementById('sc-detail').style.display='none';renderSC();}
+  if(id==='health'){setLastSeen('hl');setBadge('badge-hl',0);document.getElementById('hl-card').style.display='block';document.getElementById('hl-pdf').style.display='none';mergeHL(empD,hlD);renderHL();}
+  if(id==='emp')renderEmp();
+}
+
+// REFRESH
+function doRefresh(){
+  var icon=document.getElementById('refresh-icon');
+  icon.classList.add('refreshing');
+  fetchAllData(function(){
+    icon.classList.remove('refreshing');
+    var a=document.querySelector('.page.on');
+    if(a){var id=a.id.replace('p-','');showFromCache(id);}
+    toast('最新データに更新しました','ok');
+  });
+}
+
 function gGet(a,cb){if(!GAS)return;fetch(GAS+'?action='+a).then(function(r){return r.json();}).then(cb).catch(function(){toast('通信エラー','err');});}
 function gPost(d,cb){if(!GAS)return;fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(cb).catch(function(){toast('通信エラー','err');});}
 function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t||'ok')+' show';setTimeout(function(){e.className='toast';},3000);}
+
+// FETCH ALL DATA
+function fetchAllData(cb){
+  gGet('getAllData',function(d){
+    if(!d.success){toast('データ取得エラー','err');if(cb)cb();return;}
+    if(d.dashboard)cache.dash=d.dashboard;
+    if(d.stressResults&&d.stressResults.success)scD=d.stressResults.results;
+    if(d.healthRecords&&d.healthRecords.success)hlD=d.healthRecords.records;
+    if(d.employees&&d.employees.success)empD=d.employees.employees;
+    dataLoaded=true;
+    checkNewFromCache();
+    if(cb)cb();
+  });
+}
+
 // NEW BADGE
 function getLastSeen(key){return localStorage.getItem('health_seen_'+key)||'';}
 function setLastSeen(key){localStorage.setItem('health_seen_'+key,new Date().toISOString());}
 function countNew(records,key){var last=getLastSeen(key);if(!last)return 0;var cnt=0;records.forEach(function(r){if(r.date&&String(r.date)>last)cnt++;});return cnt;}
 function setBadge(id,cnt){var el=document.getElementById(id);if(!el)return;if(cnt>0){el.textContent=cnt;el.classList.add('show');}else{el.classList.remove('show');}}
-function checkNewAll(){
-gGet('getStressResults',function(d){if(!d.success)return;var n=countNew(d.results,'sc');setBadge('badge-sc',n);updateDashNew('sc',n,d.results);});
-gGet('getHealthRecords',function(d){if(!d.success)return;var n=countNew(d.records,'hl');setBadge('badge-hl',n);updateDashNew('hl',n,d.records);});}
-var dashNewSC=0,dashNewHL=0,dashNewSCList=[],dashNewHLList=[];
-function updateDashNew(type,cnt,records){if(type==='sc'){dashNewSC=cnt;dashNewSCList=records;}if(type==='hl'){dashNewHL=cnt;dashNewHLList=records;}var panel=document.getElementById('dash-new');var body=document.getElementById('dash-new-body');if(dashNewSC+dashNewHL===0){panel.style.display='none';return;}panel.style.display='block';var h='';if(dashNewSC>0){var lastSC=getLastSeen('sc');h+='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:600;margin-bottom:6px"><span class="new-dot"></span> ストレスチェック新着 '+dashNewSC+'件</div>';var nr=dashNewSCList.filter(function(r){return r.date&&String(r.date)>lastSC;}).slice(0,5);nr.forEach(function(r){var bc=r.level==='良好'?'bg':'br';h+='<div style="font-size:11px;color:var(--tsec);padding:2px 0">'+r.name+'（'+r.dept+'）— <span class="bs '+bc+'">'+r.level+'</span></div>';});if(dashNewSC>5)h+='<div style="font-size:10px;color:var(--tth);margin-top:2px">他 '+(dashNewSC-5)+'件</div>';h+='</div>';}if(dashNewHL>0){var lastHL=getLastSeen('hl');h+='<div><div style="font-size:12px;font-weight:600;margin-bottom:6px"><span class="new-dot"></span> 健康診断新着 '+dashNewHL+'件</div>';var nh=dashNewHLList.filter(function(r){return r.date&&String(r.date)>lastHL;}).slice(0,5);nh.forEach(function(r){h+='<div style="font-size:11px;color:var(--tsec);padding:2px 0">'+r.name+'（'+r.dept+'）</div>';});if(dashNewHL>5)h+='<div style="font-size:10px;color:var(--tth);margin-top:2px">他 '+(dashNewHL-5)+'件</div>';h+='</div>';}body.innerHTML=h;}
+function checkNewFromCache(){
+  var nSC=countNew(scD,'sc');setBadge('badge-sc',nSC);
+  var nHL=countNew(hlD,'hl');setBadge('badge-hl',nHL);
+  updateDashNew(nSC,nHL);
+}
+function updateDashNew(nSC,nHL){
+  var panel=document.getElementById('dash-new');var body=document.getElementById('dash-new-body');
+  if(nSC+nHL===0){panel.style.display='none';return;}
+  panel.style.display='block';var h='';
+  if(nSC>0){var lastSC=getLastSeen('sc');h+='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:600;margin-bottom:6px"><span class="new-dot"></span> ストレスチェック新着 '+nSC+'件</div>';var nr=scD.filter(function(r){return r.date&&String(r.date)>lastSC;}).slice(0,5);nr.forEach(function(r){var bc=r.level==='良好'?'bg':'br';h+='<div style="font-size:11px;color:var(--tsec);padding:2px 0">'+r.name+'（'+r.dept+'）— <span class="bs '+bc+'">'+r.level+'</span></div>';});if(nSC>5)h+='<div style="font-size:10px;color:var(--tth);margin-top:2px">他 '+(nSC-5)+'件</div>';h+='</div>';}
+  if(nHL>0){var lastHL=getLastSeen('hl');h+='<div><div style="font-size:12px;font-weight:600;margin-bottom:6px"><span class="new-dot"></span> 健康診断新着 '+nHL+'件</div>';var nh=hlD.filter(function(r){return r.date&&String(r.date)>lastHL;}).slice(0,5);nh.forEach(function(r){h+='<div style="font-size:11px;color:var(--tsec);padding:2px 0">'+r.name+'（'+r.dept+'）</div>';});if(nHL>5)h+='<div style="font-size:10px;color:var(--tth);margin-top:2px">他 '+(nHL-5)+'件</div>';h+='</div>';}
+  body.innerHTML=h;
+}
+
 // DASH
-function loadDash(){gGet('getDashboard',function(d){if(!d.success)return;document.getElementById('d-total').textContent=d.totalChecked;document.getElementById('d-high').textContent=d.highStress;document.getElementById('d-rate').textContent=d.highRate+'%';document.getElementById('d-health').textContent=d.healthSubmitted;var ds=d.deptStats;var h='<table><thead><tr><th>部署</th><th>実施</th><th>高ストレス</th><th class="col-btn">状況</th></tr></thead><tbody>';DEPTS.forEach(function(dept){var s=ds[dept]||{done:0,high:0};var b=s.high>0?'<span class="bs br">要対応</span>':s.done>0?'<span class="bs bg">良好</span>':'<span class="bs bx">未実施</span>';h+='<tr><td>'+dept+'</td><td>'+s.done+'</td><td>'+s.high+'</td><td>'+b+'</td></tr>';});h+='</tbody></table>';document.getElementById('dash-dept').innerHTML=h;});}
+function renderDash(){
+  if(!cache.dash)return;var d=cache.dash;
+  document.getElementById('d-total').textContent=d.totalChecked;document.getElementById('d-high').textContent=d.highStress;document.getElementById('d-rate').textContent=d.highRate+'%';document.getElementById('d-health').textContent=d.healthSubmitted;
+  var ds=d.deptStats;var h='<table><thead><tr><th>部署</th><th>実施</th><th>高ストレス</th><th class="col-btn">状況</th></tr></thead><tbody>';DEPTS.forEach(function(dept){var s=ds[dept]||{done:0,high:0};var b=s.high>0?'<span class="bs br">要対応</span>':s.done>0?'<span class="bs bg">良好</span>':'<span class="bs bx">未実施</span>';h+='<tr><td>'+dept+'</td><td>'+s.done+'</td><td>'+s.high+'</td><td>'+b+'</td></tr>';});h+='</tbody></table>';document.getElementById('dash-dept').innerHTML=h;
+}
+
 // SC
-function loadSC(){setLastSeen('sc');setBadge('badge-sc',0);document.getElementById('sc-list').style.display='block';document.getElementById('sc-detail').style.display='none';document.getElementById('sc-tbl').innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getStressResults',function(d){if(!d.success)return;scD=d.results;renderSC();});}
 function fSC(f,el){scF=f;document.querySelectorAll('#p-sc .fb').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderSC();}
 function renderSC(){var rs=scD;if(scF!=='all')rs=rs.filter(function(r){return r.level===scF;});if(!rs.length){document.getElementById('sc-tbl').innerHTML='<p style="color:var(--tsec);font-size:12px;padding:.5rem">該当なし</p>';return;}var h='<table><thead><tr><th class="col-btn"></th><th class="col-btn">実施日</th><th>氏名</th><th class="mob-hide">部署</th><th class="mob-hide">A</th><th class="mob-hide">B</th><th class="mob-hide">C</th><th class="mob-hide">D</th><th class="mob-hide">合計</th><th>判定</th></tr></thead><tbody>';rs.forEach(function(r){var bc=r.level==='良好'?'bg':'br';var dt=r.date?String(r.date).substring(0,10):'—';h+='<tr><td class="col-btn mob-vert"><button class="btn bs2 bp bi" onclick="vd('+r.rowIndex+')"><i class="ti ti-eye" style="font-size:12px"></i>詳細</button></td><td class="col-btn">'+dt+'</td><td>'+r.name+'</td><td class="mob-hide">'+deptName(r.dept)+'</td><td class="mob-hide">'+r.aSum+'</td><td class="mob-hide">'+r.bSum+'</td><td class="mob-hide">'+r.cSum+'</td><td class="mob-hide">'+r.dSum+'</td><td class="mob-hide">'+r.total+'</td><td><span class="bs '+bc+'">'+r.level+'</span></td></tr>';});h+='</tbody></table>';document.getElementById('sc-tbl').innerHTML=h;}
+
 // DETAIL
 var qAL=['非常にたくさんの仕事をしなければならない','時間内に仕事が処理しきれない','一生懸命働かなければならない','かなり注意を集中する必要がある','高度の知識や技術が必要なむずかしい仕事だ','勤務時間中はいつも仕事のことを考えていなければならない','からだを大変よく使う仕事だ','自分のペースで仕事ができる','自分で仕事の順番・やり方を決めることができる','職場の仕事の方針に自分の意見を反映できる','自分の技能や知識を仕事で使うことが少ない','私の部署内で意見のくい違いがある','私の部署と他の部署とはうまが合わない','私の職場の雰囲気は友好的である','私の職場の作業環境（騒音、照明、温度、換気など）はよくない','仕事の内容は自分にあっている','働きがいのある仕事だ'];
 var qBL=['活気がわいてくる','元気がいっぱいだ','生き生きする','怒りを感じる','内心腹立たしい','イライラしている','ひどく疲れた','へとへとだ','だるい','気がはりつめている','不安だ','落ち着かない','ゆううつだ','何をするのも面倒だ','物事に集中できない','気分が晴れない','仕事が手につかない','悲しいと感じる','めまいがする','体のふしぶしが痛む','頭が重かったり頭痛がする','首筋や肩がこる','腰が痛い','目が疲れる','動悸や息切れがする','胃腸の具合が悪い','食欲がない','便秘や下痢をする','よく眠れない'];
@@ -217,72 +269,55 @@ function sb(l,v,mx,c){var p=Math.round(v/mx*100);return '<div class="sbar"><span
 function asec(t,s,mx,pf,cnt,ql,al,ans){var h='<div class="card"><div class="card-h"><span class="card-t">'+t+'</span><span class="card-st">'+s+' / '+mx+'</span></div>';for(var i=1;i<=cnt;i++){var v=ans[pf+i]||0;var tx=al[v]||'未回答';var bg=v<=1?'var(--okL)':v===2?'var(--priL)':v===3?'var(--warnL)':'var(--ngL)';var fg=v<=1?'var(--ok)':v===2?'var(--pri)':v===3?'var(--warn)':'var(--ng)';h+='<div class="dqr"><span class="dqn">'+pf+i+'</span><span class="dqt">'+ql[i-1]+'</span><span class="dqa" style="background:'+bg+';color:'+fg+'">'+tx+'</span></div>';}h+='</div>';return h;}
 function backSC(){document.getElementById('sc-list').style.display='block';document.getElementById('sc-detail').style.display='none';}
 function lhist(name){document.getElementById('hist').innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getStressHistory&name='+encodeURIComponent(name),function(data){if(!data.success)return;var hs=data.history;if(hs.length<=1){document.getElementById('hist').innerHTML='<p style="font-size:12px;color:var(--tsec)">過去データなし</p>';return;}var h='<table><thead><tr><th class="col-btn">実施日</th><th>A</th><th>B</th><th>C</th><th>D</th><th>合計</th><th>判定</th></tr></thead><tbody>';hs.forEach(function(r){var bc=r.level==='良好'?'bg':'br';var dt=r.date?String(r.date).substring(0,10):'—';h+='<tr><td>'+dt+'</td><td>'+r.aSum+'</td><td>'+r.bSum+'</td><td>'+r.cSum+'</td><td>'+r.dSum+'</td><td>'+r.total+'</td><td><span class="bs '+bc+'">'+r.level+'</span></td></tr>';});h+='</tbody></table>';if(hs.length>=2){var prev=hs[hs.length-2],cur=hs[hs.length-1];var diff=cur.total-prev.total;var ar=diff>0?'↑ +'+diff:diff<0?'↓ '+diff:'→ 変動なし';var cl=diff>0?'var(--ng)':diff<0?'var(--ok)':'var(--tsec)';h+='<div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:var(--rs);font-size:12px">前回比: <strong style="color:'+cl+'">'+ar+'</strong></div>';}document.getElementById('hist').innerHTML=h;});}
+
 // HEALTH
 var hlMerged=[];
-function loadHL(){setLastSeen('hl');setBadge('badge-hl',0);document.getElementById('hl-card').style.display='block';document.getElementById('hl-pdf').style.display='none';document.getElementById('hl-tbl').innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';
-var loaded=0;var empList=[],hlList=[];
-gGet('getEmployees',function(d){if(d.success)empList=d.employees;loaded++;if(loaded===2)mergeHL(empList,hlList);});
-gGet('getHealthRecords',function(d){if(d.success)hlList=d.records;loaded++;if(loaded===2)mergeHL(empList,hlList);});}
 function mergeHL(emps,records){
-hlD=records;
-var submitted={};
-records.forEach(function(r){
-  if(!submitted[r.name]){submitted[r.name]=r;}
-  else if(String(r.date)>String(submitted[r.name].date)){submitted[r.name]=r;}
-});
-hlMerged=[];
-emps.forEach(function(e){
-  var s=submitted[e.name];
-  hlMerged.push({name:e.name,kana:e.kana,dept:e.dept,employType:e.employType,
-    status:s?'提出済':'未提出',date:s?s.date:'',fileId:s?s.fileId:'',fileName:s?s.fileName:''});
-});
-records.forEach(function(r){
-  var found=emps.some(function(e){return e.name===r.name;});
-  if(!found&&!hlMerged.some(function(m){return m.name===r.name;})){
-    hlMerged.push({name:r.name,kana:'',dept:r.dept,employType:'',status:'提出済',date:r.date,fileId:r.fileId,fileName:r.fileName});
-  }
-});
-renderHL();}
+  hlD=records;var submitted={};
+  records.forEach(function(r){if(!submitted[r.name]){submitted[r.name]=r;}else if(String(r.date)>String(submitted[r.name].date)){submitted[r.name]=r;}});
+  hlMerged=[];
+  emps.forEach(function(e){var s=submitted[e.name];hlMerged.push({name:e.name,kana:e.kana,dept:e.dept,employType:e.employType,status:s?'提出済':'未提出',date:s?s.date:'',fileId:s?s.fileId:'',fileName:s?s.fileName:''});});
+  records.forEach(function(r){var found=emps.some(function(e){return e.name===r.name;});if(!found&&!hlMerged.some(function(m){return m.name===r.name;})){hlMerged.push({name:r.name,kana:'',dept:r.dept,employType:'',status:'提出済',date:r.date,fileId:r.fileId,fileName:r.fileName});}});
+}
 function resetHLFilter(){document.getElementById('hl-f-status').value='';document.getElementById('hl-f-dept').value='';document.getElementById('hl-f-type').value='';renderHL();}
 function renderHL(){var rs=hlMerged.slice();
-var fStatus=document.getElementById('hl-f-status').value;
-var fDept=document.getElementById('hl-f-dept').value;
-var fType=document.getElementById('hl-f-type').value;
-if(fStatus)rs=rs.filter(function(r){return r.status===fStatus;});
-if(fDept)rs=rs.filter(function(r){return r.dept===fDept;});
-if(fType)rs=rs.filter(function(r){return r.employType===fType;});
-hlDelBtn(0);
-var totalAll=hlMerged.length;var doneAll=hlMerged.filter(function(r){return r.status==='提出済';}).length;var undoneAll=totalAll-doneAll;
-var pct=totalAll>0?Math.round(doneAll/totalAll*100):0;
-document.getElementById('hl-summary').innerHTML='<div style="display:flex;gap:16px;font-size:12px;flex-wrap:wrap;align-items:center"><span>対象: <strong>'+totalAll+'</strong>名</span><span style="color:var(--ok)">提出済: <strong>'+doneAll+'</strong></span><span style="color:var(--ng)">未提出: <strong>'+undoneAll+'</strong></span><span style="color:var(--tsec)">提出率: <strong>'+pct+'%</strong></span></div>';
-if(!rs.length){document.getElementById('hl-tbl').innerHTML='<p style="color:var(--tsec);font-size:12px;padding:.5rem">該当なし</p>';return;}
-var h='<table><thead><tr><th class="col-btn mob-ck-hide"><input type="checkbox" class="ck" onchange="hlAll(this)"></th><th class="col-btn"></th><th class="col-btn">状況</th><th>氏名</th><th>部署</th><th>雇用形態</th><th class="col-btn">提出日</th><th class="mob-hide">ファイル</th></tr></thead><tbody>';
-rs.forEach(function(r){
-  var dt=r.date?String(r.date).substring(0,10):'—';
-  var stClass=r.status==='提出済'?'bg':'br';
-  var pdfBtn=r.fileId?'<button class="btn bs2 bp bi" onclick="vpdf(\''+r.fileId+"','"+esc(r.name).replace(/'/g,"\\'")+"')\"><i class=\"ti ti-file-text\" style=\"font-size:12px\"></i>PDF</button>":'';
-  var ckBox=r.fileId?'<input type="checkbox" class="ck hl-ck" value="'+r.fileId+'" onchange="hlCkChange()">':'';
-  h+='<tr><td class="col-btn mob-ck-hide">'+ckBox+'</td><td class="col-btn mob-vert">'+pdfBtn+'</td><td class="col-btn"><span class="bs '+stClass+'">'+r.status+'</span></td><td>'+esc(r.name)+'</td><td>'+deptName(r.dept)+'</td><td>'+esc(r.employType)+'</td><td class="col-btn">'+dt+'</td><td class="mob-hide">'+esc(r.fileName)+'</td></tr>';
-});
-h+='</tbody></table>';document.getElementById('hl-tbl').innerHTML=h;}
+  var fStatus=document.getElementById('hl-f-status').value;var fDept=document.getElementById('hl-f-dept').value;var fType=document.getElementById('hl-f-type').value;
+  if(fStatus)rs=rs.filter(function(r){return r.status===fStatus;});if(fDept)rs=rs.filter(function(r){return r.dept===fDept;});if(fType)rs=rs.filter(function(r){return r.employType===fType;});
+  hlDelBtn(0);
+  var totalAll=hlMerged.length;var doneAll=hlMerged.filter(function(r){return r.status==='提出済';}).length;var undoneAll=totalAll-doneAll;var pct=totalAll>0?Math.round(doneAll/totalAll*100):0;
+  document.getElementById('hl-summary').innerHTML='<div style="display:flex;gap:16px;font-size:12px;flex-wrap:wrap;align-items:center"><span>対象: <strong>'+totalAll+'</strong>名</span><span style="color:var(--ok)">提出済: <strong>'+doneAll+'</strong></span><span style="color:var(--ng)">未提出: <strong>'+undoneAll+'</strong></span><span style="color:var(--tsec)">提出率: <strong>'+pct+'%</strong></span></div>';
+  if(!rs.length){document.getElementById('hl-tbl').innerHTML='<p style="color:var(--tsec);font-size:12px;padding:.5rem">該当なし</p>';return;}
+  var h='<table><thead><tr><th class="col-btn mob-ck-hide"><input type="checkbox" class="ck" onchange="hlAll(this)"></th><th class="col-btn"></th><th class="col-btn">状況</th><th>氏名</th><th>部署</th><th>雇用形態</th><th class="col-btn">提出日</th><th class="mob-hide">ファイル</th></tr></thead><tbody>';
+  rs.forEach(function(r){var dt=r.date?String(r.date).substring(0,10):'—';var stClass=r.status==='提出済'?'bg':'br';var pdfBtn=r.fileId?'<button class="btn bs2 bp bi" onclick="vpdf(\''+r.fileId+"','"+esc(r.name).replace(/'/g,"\\'")+"')\"><i class=\"ti ti-file-text\" style=\"font-size:12px\"></i>PDF</button>":'';var ckBox=r.fileId?'<input type="checkbox" class="ck hl-ck" value="'+r.fileId+'" onchange="hlCkChange()">':'';h+='<tr><td class="col-btn mob-ck-hide">'+ckBox+'</td><td class="col-btn mob-vert">'+pdfBtn+'</td><td class="col-btn"><span class="bs '+stClass+'">'+r.status+'</span></td><td>'+esc(r.name)+'</td><td>'+deptName(r.dept)+'</td><td>'+esc(r.employType)+'</td><td class="col-btn">'+dt+'</td><td class="mob-hide">'+esc(r.fileName)+'</td></tr>';});
+  h+='</tbody></table>';document.getElementById('hl-tbl').innerHTML=h;
+}
 function hlAll(el){document.querySelectorAll('.hl-ck').forEach(function(c){c.checked=el.checked;});hlCkChange();}
 function hlCkChange(){var checked=document.querySelectorAll('.hl-ck:checked');hlDelBtn(checked.length);}
 function hlDelBtn(cnt){var btn=document.getElementById('hl-del-btn');var span=document.getElementById('hl-del-cnt');if(cnt>0){btn.style.display='inline-flex';span.textContent=cnt;}else{btn.style.display='none';}}
-function deleteSelected(){var checked=document.querySelectorAll('.hl-ck:checked');if(!checked.length)return;var ids=[];checked.forEach(function(c){ids.push(c.value);});if(!confirm(ids.length+'件の健康診断データを削除します。\nDrive上のPDFも削除されます。\nこの操作は取り消せません。'))return;var btn=document.getElementById('hl-del-btn');btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2" style="font-size:13px;animation:sp 1s linear infinite"></i>削除中...';gPost({action:'deleteHealthRecords',fileIds:ids},function(d){if(d.success){toast(d.message,'ok');loadHL();}else{toast('エラー','err');btn.disabled=false;}});}
+function deleteSelected(){var checked=document.querySelectorAll('.hl-ck:checked');if(!checked.length)return;var ids=[];checked.forEach(function(c){ids.push(c.value);});if(!confirm(ids.length+'件の健康診断データを削除します。\nDrive上のPDFも削除されます。\nこの操作は取り消せません。'))return;var btn=document.getElementById('hl-del-btn');btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2" style="font-size:13px;animation:sp 1s linear infinite"></i>削除中...';gPost({action:'deleteHealthRecords',fileIds:ids},function(d){if(d.success){toast(d.message,'ok');doRefresh();}else{toast('エラー','err');btn.disabled=false;}});}
 function vpdf(fid,name){document.getElementById('hl-card').style.display='none';var pv=document.getElementById('hl-pdf');pv.style.display='block';pv.innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getHealthFile&fileId='+fid,function(d){if(!d.success){toast('ファイル取得エラー','err');return;}pv.innerHTML='<button class="btn bs2 bi" onclick="bhl()" style="margin-bottom:1rem"><i class="ti ti-arrow-left" style="font-size:13px"></i>一覧に戻る</button><div class="card"><div class="card-h"><span class="card-t"><i class="ti ti-file-text" style="color:var(--pri)"></i> '+name+' — 健康診断結果</span></div><iframe src="'+d.url+'" class="pdf-frame"></iframe></div>';});}
 function bhl(){document.getElementById('hl-card').style.display='block';document.getElementById('hl-pdf').style.display='none';}
+
 // EMPLOYEE
 var empEditRow=null;
-function loadEmp(){document.getElementById('emp-tbl').innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getEmployees',function(d){if(!d.success)return;empD=d.employees;renderEmp();});}
 function fEmp(f,el){empFType=f;document.querySelectorAll('#p-emp .fb').forEach(function(b){b.classList.remove('on');});el.classList.add('on');var sub=document.getElementById('emp-filter-sub');var sel=document.getElementById('emp-filter-sel');if(f==='dept'){sub.style.display='block';sel.innerHTML='<option value="">すべての部署</option>';DEPTS.forEach(function(d){sel.innerHTML+='<option>'+d+'</option>';});}else if(f==='type'){sub.style.display='block';sel.innerHTML='<option value="">すべての雇用形態</option>';ETYPES.forEach(function(t){sel.innerHTML+='<option>'+t+'</option>';});}else{sub.style.display='none';sel.value='';}renderEmp();}
 function renderEmp(){var rs=empD;var fv=document.getElementById('emp-filter-sel').value;if(empFType==='dept'&&fv)rs=rs.filter(function(r){return r.dept===fv;});if(empFType==='type'&&fv)rs=rs.filter(function(r){return r.employType===fv;});if(!rs.length){document.getElementById('emp-tbl').innerHTML='<p style="color:var(--tsec);font-size:12px;padding:.5rem">該当なし</p>';return;}var h='<table><thead><tr><th class="col-btn"></th><th>氏名</th><th class="mob-hide">フリガナ</th><th>所属部署</th><th>雇用形態</th><th>登録日</th></tr></thead><tbody>';rs.forEach(function(r){var dt=r.regDate?String(r.regDate).substring(0,10):'—';h+='<tr><td class="col-btn mob-vert"><button class="btn bs2 bi" onclick="editEmp('+r.rowIndex+')"><i class="ti ti-edit" style="font-size:12px"></i>編集</button></td><td class="mob-name-wrap"><span class="mob-kana">'+esc(r.kana)+'</span>'+esc(r.name)+'</td><td class="mob-hide">'+esc(r.kana)+'</td><td>'+deptName(r.dept)+'</td><td>'+esc(r.employType)+'</td><td>'+dt+'</td></tr>';});h+='</tbody></table>';document.getElementById('emp-tbl').innerHTML=h;}
 function showEmpModal(){empEditRow=null;document.getElementById('emp-modal-title').textContent='社員登録';document.getElementById('emp-name').value='';document.getElementById('emp-kana').value='';document.getElementById('emp-dept').value='';document.getElementById('emp-type').value='';document.getElementById('emp-err').style.display='none';document.getElementById('emp-save-btn').textContent='登録';document.getElementById('emp-modal').classList.add('show');}
 function editEmp(ri){var r=empD.find(function(e){return e.rowIndex===ri;});if(!r)return;empEditRow=ri;document.getElementById('emp-modal-title').textContent='社員編集';document.getElementById('emp-name').value=r.name;document.getElementById('emp-kana').value=r.kana;document.getElementById('emp-dept').value=r.dept;document.getElementById('emp-type').value=r.employType;document.getElementById('emp-err').style.display='none';document.getElementById('emp-save-btn').textContent='更新';document.getElementById('emp-modal').classList.add('show');}
 function closeEmpModal(){document.getElementById('emp-modal').classList.remove('show');}
-function saveEmp(){var name=document.getElementById('emp-name').value.trim();var kana=document.getElementById('emp-kana').value.trim();var dept=document.getElementById('emp-dept').value;var etype=document.getElementById('emp-type').value;var err=document.getElementById('emp-err');if(!name||!kana||!dept||!etype){err.textContent='すべての項目を入力してください';err.style.display='block';return;}err.style.display='none';var btn=document.getElementById('emp-save-btn');btn.disabled=true;btn.textContent='保存中...';if(empEditRow!==null){gPost({action:'updateEmployee',rowIndex:empEditRow,name:name,kana:kana,dept:dept,employType:etype},function(d){btn.disabled=false;if(d.success){toast(d.message,'ok');closeEmpModal();loadEmp();}else{toast('エラー','err');btn.textContent='更新';}});}else{gPost({action:'registerEmployee',name:name,kana:kana,dept:dept,employType:etype},function(d){btn.disabled=false;if(d.success){toast(d.message,'ok');closeEmpModal();loadEmp();}else{toast('エラー','err');btn.textContent='登録';}});}}
+function saveEmp(){var name=document.getElementById('emp-name').value.trim();var kana=document.getElementById('emp-kana').value.trim();var dept=document.getElementById('emp-dept').value;var etype=document.getElementById('emp-type').value;var err=document.getElementById('emp-err');if(!name||!kana||!dept||!etype){err.textContent='すべての項目を入力してください';err.style.display='block';return;}err.style.display='none';var btn=document.getElementById('emp-save-btn');btn.disabled=true;btn.textContent='保存中...';if(empEditRow!==null){gPost({action:'updateEmployee',rowIndex:empEditRow,name:name,kana:kana,dept:dept,employType:etype},function(d){btn.disabled=false;if(d.success){toast(d.message,'ok');closeEmpModal();doRefresh();}else{toast('エラー','err');btn.textContent='更新';}});}else{gPost({action:'registerEmployee',name:name,kana:kana,dept:dept,employType:etype},function(d){btn.disabled=false;if(d.success){toast(d.message,'ok');closeEmpModal();doRefresh();}else{toast('エラー','err');btn.textContent='登録';}});}}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function deptName(d){var m={'メディアリサーチ事業部 ANNEXE':'ANNEXE','フード・リテール事業部 Cache-Cache':'Cache-Cache'};return m[d]||d;}
-(function(){loadDash();checkNewAll();})();
+
+// INIT: 一括取得して全ページを描画
+(function(){
+  var icon=document.getElementById('refresh-icon');
+  icon.classList.add('refreshing');
+  fetchAllData(function(){
+    icon.classList.remove('refreshing');
+    renderDash();
+  });
+})();
 </script>
 </body>
 </html>
