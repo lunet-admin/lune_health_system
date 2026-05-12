@@ -71,7 +71,7 @@ html,body{height:100%;font-family:'Noto Sans JP',sans-serif;background:var(--bg)
         <input type="file" id="f-file" accept=".pdf" onchange="onFile(this)">
         <div class="upload-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
         <div class="upload-txt">タップしてPDFを選択</div>
-        <div class="upload-hint">PDF形式・最大10MB</div>
+        <div class="upload-hint">PDF形式・最大50MB</div>
       </div>
       <div id="file-preview" style="display:none"></div>
     </div>
@@ -94,7 +94,7 @@ dropArea.addEventListener('drop',function(e){
 function onFile(inp){if(inp.files.length)handleFile(inp.files[0]);}
 function handleFile(f){
   if(f.type!=='application/pdf'){showErr('PDF形式のファイルを選択してください');return;}
-  if(f.size>10*1024*1024){showErr('ファイルサイズは10MB以下にしてください');return;}
+  if(f.size>50*1024*1024){showErr('ファイルサイズは50MB以下にしてください');return;}
   selFile=f;hideErr();
   var sz=f.size<1024?f.size+'B':f.size<1048576?Math.round(f.size/1024)+'KB':Math.round(f.size/1048576*10)/10+'MB';
   document.getElementById('file-preview').style.display='block';
