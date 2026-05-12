@@ -82,7 +82,8 @@ tr:hover td{background:var(--hover)}
 .ld{text-align:center;padding:2rem;color:var(--tsec);font-size:12px}
 .ld i{font-size:22px;display:block;margin-bottom:6px;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-.refreshing{animation:sp .8s linear infinite}
+.refreshing{display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .toast{position:fixed;top:16px;right:16px;padding:10px 18px;border-radius:var(--rs);color:#fff;font-size:12px;font-weight:500;z-index:9999;opacity:0;transform:translateY(-10px);transition:all .3s}
 .toast.show{opacity:1;transform:translateY(0)}.toast.ok{background:var(--ok)}.toast.err{background:var(--ng)}
 .sbar{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--blight)}.sbar:last-child{border-bottom:none}
@@ -121,7 +122,7 @@ tr:hover td{background:var(--hover)}
   <div class="side-foot">衛生管理システム v1.1</div>
 </div>
 <div class="main">
-  <div class="top"><button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button><div class="top-title" id="tt">ダッシュボード</div><div class="top-r"><div class="ib" id="refresh-btn" title="データを最新に更新" onclick="doRefresh()" style="cursor:pointer"><i class="ti ti-rotate-clockwise" id="refresh-icon"></i></div></div></div>
+  <div class="top"><button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button><div class="top-title" id="tt">ダッシュボード</div><div class="top-r"><div class="ib" id="refresh-btn" title="データを最新に更新" onclick="doRefresh()" style="cursor:pointer"><i class="ti ti-refresh" id="refresh-icon" style="font-size:18px"></i></div></div></div>
   <div class="cnt">
     <!-- DASH -->
     <div class="page on" id="p-dash">
@@ -137,7 +138,7 @@ tr:hover td{background:var(--hover)}
     </div>
     <!-- SC -->
     <div class="page" id="p-sc">
-      <div id="sc-list"><div class="card"><div class="card-h"><span class="card-t">ストレスチェック結果一覧</span><button class="btn bs2 bi" onclick="loadSC()"><i class="ti ti-refresh" style="font-size:13px"></i>更新</button></div>
+      <div id="sc-list"><div class="card"><div class="card-h"><span class="card-t">ストレスチェック結果一覧</span><button class="btn bs2 bi" onclick="doRefresh()"><i class="ti ti-refresh" style="font-size:13px"></i>更新</button></div>
         <div class="filter-row"><button class="fb on" onclick="fSC('all',this)">すべて</button><button class="fb" onclick="fSC('良好',this)">良好</button><button class="fb" onclick="fSC('高ストレス',this)">高ストレス</button></div>
         <div id="sc-tbl"><div class="ld"><i class="ti ti-loader-2"></i></div></div>
       </div></div>
@@ -145,7 +146,7 @@ tr:hover td{background:var(--hover)}
     </div>
     <!-- HEALTH -->
     <div class="page" id="p-health">
-      <div id="hl-card"><div class="card"><div class="card-h"><span class="card-t">健康診断 提出状況</span><div style="display:flex;gap:6px"><button class="btn bs2 bi bd" id="hl-del-btn" onclick="deleteSelected()" style="display:none"><i class="ti ti-trash" style="font-size:13px"></i><span id="hl-del-cnt">0</span>件を削除</button><button class="btn bs2 bi" onclick="loadHL()"><i class="ti ti-refresh" style="font-size:13px"></i>更新</button></div></div>
+      <div id="hl-card"><div class="card"><div class="card-h"><span class="card-t">健康診断 提出状況</span><div style="display:flex;gap:6px"><button class="btn bs2 bi bd" id="hl-del-btn" onclick="deleteSelected()" style="display:none"><i class="ti ti-trash" style="font-size:13px"></i><span id="hl-del-cnt">0</span>件を削除</button><button class="btn bs2 bi" onclick="doRefresh()"><i class="ti ti-refresh" style="font-size:13px"></i>更新</button></div></div>
         <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:end">
           <div class="fgr" style="min-width:120px"><label>提出状況</label><select id="hl-f-status" onchange="renderHL()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--rs)"><option value="">すべて</option><option value="提出済">提出済</option><option value="未提出">未提出</option></select></div>
           <div class="fgr" style="min-width:140px"><label>部署</label><select id="hl-f-dept" onchange="renderHL()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--rs)"><option value="">すべて</option><option>名古屋FW</option><option>名古屋TF</option><option>名古屋TF ANNEXE 分室</option><option>東京FW</option><option>メディアリサーチ事業部 ANNEXE</option><option>フード・リテール事業部 Cache-Cache</option><option>監査役</option><option>JDS</option></select></div>
@@ -159,7 +160,7 @@ tr:hover td{background:var(--hover)}
     </div>
     <!-- EMP -->
     <div class="page" id="p-emp">
-      <div id="emp-list"><div class="card"><div class="card-h"><span class="card-t">社員一覧</span><div style="display:flex;gap:6px"><button class="btn bs2 bp bi" onclick="showEmpModal()"><i class="ti ti-user-plus" style="font-size:13px"></i>新規登録</button><button class="btn bs2 bi" onclick="loadEmp()"><i class="ti ti-refresh" style="font-size:13px"></i>更新</button></div></div>
+      <div id="emp-list"><div class="card"><div class="card-h"><span class="card-t">社員一覧</span><div style="display:flex;gap:6px"><button class="btn bs2 bp bi" onclick="showEmpModal()"><i class="ti ti-user-plus" style="font-size:13px"></i>新規登録</button><button class="btn bs2 bi" onclick="doRefresh()"><i class="ti ti-refresh" style="font-size:13px"></i>更新</button></div></div>
         <div class="filter-row"><button class="fb on" onclick="fEmp('all',this)">すべて</button><button class="fb" onclick="fEmp('dept',this)">部署</button><button class="fb" onclick="fEmp('type',this)">雇用形態</button></div>
         <div id="emp-filter-sub" style="display:none;margin-bottom:1rem"><select id="emp-filter-sel" onchange="renderEmp()" style="font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--rs)"></select></div>
         <div id="emp-tbl"><div class="ld"><i class="ti ti-loader-2"></i></div></div>
