@@ -8,21 +8,32 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons-webfont/3.31.0/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#F4F6F9;--card:#fff;--hover:#F8FAFC;--border:#E2E8F0;--blight:#EDF2F7;--text:#1A202C;--tsec:#64748B;--tth:#94A3B8;--pri:#2563EB;--priL:#DBEAFE;--priD:#1D4ED8;--ok:#059669;--okL:#D1FAE5;--warn:#D97706;--warnL:#FEF3C7;--ng:#DC2626;--ngL:#FEE2E2;--side:230px;--r:10px;--rs:6px;--sh:0 1px 3px rgba(0,0,0,.06)}
+:root{--bg:#F4F6F9;--card:#fff;--hover:#F8FAFC;--border:#E2E8F0;--blight:#EDF2F7;--text:#1A202C;--tsec:#64748B;--tth:#94A3B8;--pri:#1B7A5A;--priL:#E6F5EF;--priD:#145E44;--ok:#059669;--okL:#D1FAE5;--warn:#D97706;--warnL:#FEF3C7;--ng:#DC2626;--ngL:#FEE2E2;--side:230px;--r:10px;--rs:6px;--sh:0 1px 3px rgba(0,0,0,.06);--sidebar:#0F2E22;--sidebar-border:#1A4433;--sidebar-hover:rgba(255,255,255,.05);--sidebar-active:rgba(27,122,90,.25)}
 html,body{height:100%;font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
 .app{display:flex;height:100vh}
-.side{width:var(--side);flex-shrink:0;background:#0F172A;display:flex;flex-direction:column;overflow-y:auto}
-.side-brand{padding:1.25rem 1rem;border-bottom:1px solid #1E293B}
-.side-brand h1{font-size:13px;font-weight:700;color:#F1F5F9;letter-spacing:.03em}
-.side-brand p{font-size:10px;color:#475569;margin-top:2px}
+.side{width:var(--side);flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;overflow-y:auto;z-index:100;transition:transform .25s ease}
+.side-brand{padding:1.25rem 1rem;border-bottom:1px solid var(--sidebar-border)}
+.side-brand h1{font-size:13px;font-weight:700;color:#E8F5EF;letter-spacing:.03em}
+.side-brand p{font-size:10px;color:#6B9B84;margin-top:2px}
 .nav{padding:.5rem 0;flex:1}
-.nav-sec{padding:0 1rem;margin-top:1rem;margin-bottom:.25rem;font-size:9px;font-weight:700;color:#475569;letter-spacing:.1em;text-transform:uppercase}
+.nav-sec{padding:0 1rem;margin-top:1rem;margin-bottom:.25rem;font-size:9px;font-weight:700;color:#6B9B84;letter-spacing:.1em;text-transform:uppercase}
 .nav-sec:first-child{margin-top:.5rem}
-.ni{display:flex;align-items:center;gap:10px;padding:8px 1rem;font-size:12px;color:#94A3B8;cursor:pointer;border-left:2px solid transparent;transition:all .15s}
-.ni:hover{color:#E2E8F0;background:rgba(255,255,255,.03)}
-.ni.on{color:#fff;background:rgba(37,99,235,.15);border-left-color:var(--pri)}
+.ni{display:flex;align-items:center;gap:10px;padding:8px 1rem;font-size:12px;color:#94C9AE;cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.ni:hover{color:#D5F1E3;background:var(--sidebar-hover)}
+.ni.on{color:#fff;background:var(--sidebar-active);border-left-color:var(--pri)}
 .ni i{font-size:17px;width:20px;text-align:center}
-.side-foot{padding:1rem;border-top:1px solid #1E293B;font-size:11px;color:#475569}
+.ni .badge{margin-left:auto;font-size:9px;font-weight:700;background:#DC2626;color:#fff;padding:1px 7px;border-radius:99px;min-width:18px;text-align:center;display:none}
+.ni .badge.show{display:inline-block}
+.new-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#DC2626;margin-left:6px;vertical-align:middle;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.side-foot{padding:1rem;border-top:1px solid var(--sidebar-border);font-size:11px;color:#6B9B84}
+.hamburger{display:none;width:36px;height:36px;border:none;background:none;cursor:pointer;padding:6px;flex-shrink:0}
+.hamburger span{display:block;width:22px;height:2px;background:var(--text);margin:5px auto;border-radius:2px;transition:all .25s}
+.hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+.overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:99}
+.overlay.show{display:block}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .top{height:52px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;flex-shrink:0}
 .top-title{font-size:14px;font-weight:600}
@@ -73,26 +84,27 @@ tr:hover td{background:var(--hover)}
 .dqa{width:100px;flex-shrink:0;text-align:center;font-size:10px;font-weight:600;padding:3px 6px;border-radius:99px}
 .pdf-frame{width:100%;height:500px;border:1px solid var(--border);border-radius:var(--r)}
 .setup-box{background:var(--bg);border-radius:var(--r);padding:1rem;margin-bottom:1rem;font-size:12px;line-height:2}
-@media(max-width:768px){.side{display:none}.fg{grid-template-columns:1fr}.mg{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){.side{position:fixed;top:0;left:0;height:100%;transform:translateX(-100%)}.side.open{transform:translateX(0)}.hamburger{display:block}.fg{grid-template-columns:1fr}.mg{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
+<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 <div class="app">
-<div class="side">
+<div class="side" id="sidebar">
   <div class="side-brand"><h1>衛生管理システム</h1><p>Health Management</p></div>
   <div class="nav">
     <div class="nav-sec">概要</div>
     <div class="ni on" onclick="go('dash',this)"><i class="ti ti-layout-dashboard"></i>ダッシュボード</div>
     <div class="nav-sec">ストレスチェック</div>
-    <div class="ni" onclick="go('sc-results',this)"><i class="ti ti-list-check"></i>結果一覧</div>
-    <div class="ni" onclick="go('sc-detail',this)"><i class="ti ti-file-analytics"></i>回答詳細</div>
+    <div class="ni" onclick="go('sc',this)"><i class="ti ti-list-check"></i>結果一覧<span class="badge" id="badge-sc"></span></div>
     <div class="nav-sec">健康診断</div>
-    <div class="ni" onclick="go('health',this)"><i class="ti ti-stethoscope"></i>提出状況</div>
+    <div class="ni" onclick="go('health',this)"><i class="ti ti-stethoscope"></i>提出状況<span class="badge" id="badge-hl"></span></div>
+
   </div>
   <div class="side-foot">衛生管理システム v1.0</div>
 </div>
 <div class="main">
-  <div class="top"><div class="top-title" id="tt">ダッシュボード</div><div class="top-r"><div class="ib" title="更新" onclick="doRefresh()"><i class="ti ti-refresh"></i></div></div></div>
+  <div class="top"><button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button><div class="top-title" id="tt">ダッシュボード</div><div class="top-r"><div class="ib" title="更新" onclick="doRefresh()"><i class="ti ti-refresh"></i></div></div></div>
   <div class="cnt">
     <!-- DASH -->
     <div class="page on" id="p-dash">
@@ -102,23 +114,20 @@ tr:hover td{background:var(--hover)}
         <div class="mc"><div class="mi am"><i class="ti ti-percentage"></i></div><div class="mb"><div class="ml">高ストレス割合</div><div class="mv" style="color:var(--warn)" id="d-rate">—</div></div></div>
         <div class="mc"><div class="mi gn"><i class="ti ti-stethoscope"></i></div><div class="mb"><div class="ml">健康診断提出者</div><div class="mv" style="color:var(--ok)" id="d-health">—</div></div></div>
       </div>
+      <div class="card" id="dash-new" style="display:none"><div class="card-h"><span class="card-t"><i class="ti ti-bell-ringing" style="color:var(--ng)"></i> 新着通知</span></div><div id="dash-new-body"></div></div>
       <div class="card"><div class="card-h"><span class="card-t">部署別状況</span></div><div id="dash-dept"><div class="ld"><i class="ti ti-loader-2"></i></div></div></div>
       <div class="card"><div class="card-h"><span class="card-t">高ストレス判定基準</span></div><p style="font-size:12px;color:var(--tsec);line-height:1.8"><strong style="color:var(--text)">パターン1：</strong>B（ストレス反応）≧ 77<br><strong style="color:var(--text)">パターン2：</strong>A + C ≧ 76 かつ B ≧ 63</p></div>
     </div>
-    <!-- SC RESULTS -->
-    <div class="page" id="p-sc-results">
-      <div class="card"><div class="card-h"><span class="card-t">ストレスチェック結果一覧</span><button class="btn bs2 bi" onclick="loadSC()"><i class="ti ti-refresh" style="font-size:13px"></i>更新</button></div>
-        <div class="filter-row"><button class="fb on" onclick="fSC('all',this)">すべて</button><button class="fb" onclick="fSC('良好',this)">良好</button><button class="fb" onclick="fSC('高ストレス',this)">高ストレス</button></div>
-        <div id="sc-tbl"><div class="ld"><i class="ti ti-loader-2"></i></div></div>
+    <!-- SC (結果一覧 + 詳細 統合) -->
+    <div class="page" id="p-sc">
+      <div id="sc-list">
+        <div class="card">
+          <div class="card-h"><span class="card-t">ストレスチェック結果一覧</span><button class="btn bs2 bi" onclick="loadSC()"><i class="ti ti-refresh" style="font-size:13px"></i>更新</button></div>
+          <div class="filter-row"><button class="fb on" onclick="fSC('all',this)">すべて</button><button class="fb" onclick="fSC('良好',this)">良好</button><button class="fb" onclick="fSC('高ストレス',this)">高ストレス</button></div>
+          <div id="sc-tbl"><div class="ld"><i class="ti ti-loader-2"></i></div></div>
+        </div>
       </div>
-    </div>
-    <!-- SC DETAIL -->
-    <div class="page" id="p-sc-detail">
-      <div id="dl-card"><div class="card"><div class="card-h"><span class="card-t">回答詳細</span><button class="btn bs2 bi" onclick="loadDL()"><i class="ti ti-refresh" style="font-size:13px"></i>更新</button></div>
-        <div class="filter-row"><button class="fb on" onclick="fDL('all',this)">すべて</button><button class="fb" onclick="fDL('良好',this)">良好</button><button class="fb" onclick="fDL('高ストレス',this)">高ストレス</button></div>
-        <div id="dl-tbl"><div class="ld"><i class="ti ti-loader-2"></i></div></div>
-      </div></div>
-      <div id="dv" style="display:none"></div>
+      <div id="sc-detail" style="display:none"></div>
     </div>
     <!-- HEALTH -->
     <div class="page" id="p-health">
@@ -135,43 +144,89 @@ tr:hover td{background:var(--hover)}
 <div class="toast" id="toast"></div>
 <script>
 var GAS='https://script.google.com/macros/s/AKfycbyYoUJgpvHLgbhjMdBd7EksLSD35CaP_uNVCHuLbH38LXhjhVIj0_XU6cCjK2xe0luy/exec';
-var scD=[],hlD=[],scF='all',dlF='all';
-var titles={'dash':'ダッシュボード','sc-results':'結果一覧','sc-detail':'回答詳細','health':'健康診断 提出状況'};
-function go(id,el){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});document.getElementById('p-'+id).classList.add('on');document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});if(el)el.classList.add('on');document.getElementById('tt').textContent=titles[id]||'';if(id==='dash')loadDash();if(id==='sc-results')loadSC();if(id==='sc-detail')loadDL();if(id==='health')loadHL();}
+var scD=[],hlD=[],scF='all';
+var titles={'dash':'ダッシュボード','sc':'結果一覧','health':'健康診断 提出状況'};
+function toggleMenu(){var s=document.getElementById('sidebar');var o=document.getElementById('overlay');var h=document.getElementById('hamburger');s.classList.toggle('open');o.classList.toggle('show');h.classList.toggle('open');}
+function closeMenu(){var s=document.getElementById('sidebar');var o=document.getElementById('overlay');var h=document.getElementById('hamburger');s.classList.remove('open');o.classList.remove('show');h.classList.remove('open');}
+function go(id,el){closeMenu();document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});document.getElementById('p-'+id).classList.add('on');document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});if(el)el.classList.add('on');document.getElementById('tt').textContent=titles[id]||'';if(id==='dash')loadDash();if(id==='sc')loadSC();if(id==='health')loadHL();}
 function doRefresh(){var a=document.querySelector('.page.on');if(a){var id=a.id.replace('p-','');go(id,document.querySelector('.ni.on'));}toast('更新しました','ok');}
 function gGet(a,cb){if(!GAS){toast('GAS URLが未設定です','err');return;}fetch(GAS+'?action='+a).then(function(r){return r.json();}).then(cb).catch(function(e){toast('通信エラー','err');});}
-function gPost(d,cb){if(!GAS){toast('GAS URLが未設定です','err');return;}fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(cb).catch(function(e){toast('通信エラー','err');});}
 function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t||'ok')+' show';setTimeout(function(){e.className='toast';},3000);}
-function saveUrl(){var u=document.getElementById('gas-url').value.trim();if(!u){toast('URLを入力','err');return;}GAS=u;localStorage.setItem('health_gas_url',u);toast('保存しました','ok');}
-function testConn(){var u=document.getElementById('gas-url').value.trim();if(!u){toast('URLを入力','err');return;}GAS=u;localStorage.setItem('health_gas_url',u);var m=document.getElementById('setup-msg');m.textContent='テスト中...';m.style.color='var(--tsec)';gGet('getDashboard',function(d){if(d.success){m.textContent='✅ 接続成功！';m.style.color='var(--ok)';loadDash();}else{m.textContent='❌ '+d.error;m.style.color='var(--ng)';}});}
+// NEW BADGE LOGIC
+function getLastSeen(key){return localStorage.getItem('health_seen_'+key)||'';}
+function setLastSeen(key){localStorage.setItem('health_seen_'+key,new Date().toISOString());}
+function countNew(records,key){var last=getLastSeen(key);if(!last)return 0;var cnt=0;records.forEach(function(r){if(r.date&&String(r.date)>last)cnt++;});return cnt;}
+function setBadge(id,cnt){var el=document.getElementById(id);if(!el)return;if(cnt>0){el.textContent=cnt;el.classList.add('show');}else{el.classList.remove('show');}}
+function checkNewAll(){
+  gGet('getStressResults',function(d){
+    if(!d.success)return;
+    var n=countNew(d.results,'sc');
+    setBadge('badge-sc',n);
+    updateDashNew('sc',n,d.results);
+  });
+  gGet('getHealthRecords',function(d){
+    if(!d.success)return;
+    var n=countNew(d.records,'hl');
+    setBadge('badge-hl',n);
+    updateDashNew('hl',n,d.records);
+  });
+}
+var dashNewSC=0,dashNewHL=0,dashNewSCList=[],dashNewHLList=[];
+function updateDashNew(type,cnt,records){
+  if(type==='sc'){dashNewSC=cnt;dashNewSCList=records;}
+  if(type==='hl'){dashNewHL=cnt;dashNewHLList=records;}
+  var panel=document.getElementById('dash-new');
+  var body=document.getElementById('dash-new-body');
+  if(dashNewSC+dashNewHL===0){panel.style.display='none';return;}
+  panel.style.display='block';
+  var h='';
+  if(dashNewSC>0){
+    var lastSC=getLastSeen('sc');
+    h+='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:600;margin-bottom:6px"><span class="new-dot"></span> ストレスチェック新着 '+dashNewSC+'件</div>';
+    var newRecs=dashNewSCList.filter(function(r){return r.date&&String(r.date)>lastSC;}).slice(0,5);
+    newRecs.forEach(function(r){
+      var bc=r.level==='良好'?'bg':'br';
+      h+='<div style="font-size:11px;color:var(--tsec);padding:2px 0">'+r.name+'（'+r.dept+'）— <span class="bs '+bc+'">'+r.level+'</span></div>';
+    });
+    if(dashNewSC>5)h+='<div style="font-size:10px;color:var(--tth);margin-top:2px">他 '+(dashNewSC-5)+'件</div>';
+    h+='</div>';
+  }
+  if(dashNewHL>0){
+    var lastHL=getLastSeen('hl');
+    h+='<div><div style="font-size:12px;font-weight:600;margin-bottom:6px"><span class="new-dot"></span> 健康診断新着 '+dashNewHL+'件</div>';
+    var newHL=dashNewHLList.filter(function(r){return r.date&&String(r.date)>lastHL;}).slice(0,5);
+    newHL.forEach(function(r){
+      h+='<div style="font-size:11px;color:var(--tsec);padding:2px 0">'+r.name+'（'+r.dept+'）</div>';
+    });
+    if(dashNewHL>5)h+='<div style="font-size:10px;color:var(--tth);margin-top:2px">他 '+(dashNewHL-5)+'件</div>';
+    h+='</div>';
+  }
+  body.innerHTML=h;
+}
 // DASH
 function loadDash(){gGet('getDashboard',function(d){if(!d.success)return;document.getElementById('d-total').textContent=d.totalChecked;document.getElementById('d-high').textContent=d.highStress;document.getElementById('d-rate').textContent=d.highRate+'%';document.getElementById('d-health').textContent=d.healthSubmitted;var ds=d.deptStats;var depts=['名古屋FW','名古屋TF','名古屋TF ANNEXE 分室','東京FW','メディアリサーチ事業部 ANNEXE','フード・リテール事業部 Cache-Cache','監査役','JDS'];var h='<table><thead><tr><th>部署</th><th>実施</th><th>高ストレス</th><th>状況</th></tr></thead><tbody>';depts.forEach(function(dept){var s=ds[dept]||{done:0,high:0};var b=s.high>0?'<span class="bs br">要対応</span>':s.done>0?'<span class="bs bg">良好</span>':'<span class="bs bx">未実施</span>';h+='<tr><td>'+dept+'</td><td>'+s.done+'</td><td>'+s.high+'</td><td>'+b+'</td></tr>';});h+='</tbody></table>';document.getElementById('dash-dept').innerHTML=h;});}
-// SC RESULTS
-function loadSC(){document.getElementById('sc-tbl').innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getStressResults',function(d){if(!d.success)return;scD=d.results;renderSC();});}
-function fSC(f,el){scF=f;document.querySelectorAll('#p-sc-results .fb').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderSC();}
-function renderSC(){var rs=scD;if(scF!=='all')rs=rs.filter(function(r){return r.level===scF;});if(!rs.length){document.getElementById('sc-tbl').innerHTML='<p style="color:var(--tsec);font-size:12px;padding:.5rem">該当なし</p>';return;}var h='<table><thead><tr><th>実施日</th><th>氏名</th><th>部署</th><th>A</th><th>B</th><th>C</th><th>D</th><th>合計</th><th>判定</th><th></th></tr></thead><tbody>';rs.forEach(function(r){var bc=r.level==='良好'?'bg':'br';var dt=r.date?String(r.date).substring(0,10):'—';h+='<tr><td>'+dt+'</td><td>'+r.name+'</td><td>'+r.dept+'</td><td>'+r.aSum+'</td><td>'+r.bSum+'</td><td>'+r.cSum+'</td><td>'+r.dSum+'</td><td>'+r.total+'</td><td><span class="bs '+bc+'">'+r.level+'</span></td><td><button class="btn bs2" onclick="vd('+r.rowIndex+')">詳細</button></td></tr>';});h+='</tbody></table>';document.getElementById('sc-tbl').innerHTML=h;}
-// DETAIL LIST
-function loadDL(){document.getElementById('dl-card').style.display='block';document.getElementById('dv').style.display='none';document.getElementById('dl-tbl').innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getStressResults',function(d){if(!d.success)return;scD=d.results;renderDL();});}
-function fDL(f,el){dlF=f;document.querySelectorAll('#p-sc-detail .fb').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderDL();}
-function renderDL(){var rs=scD;if(dlF!=='all')rs=rs.filter(function(r){return r.level===dlF;});if(!rs.length){document.getElementById('dl-tbl').innerHTML='<p style="color:var(--tsec);font-size:12px;padding:.5rem">該当なし</p>';return;}var h='<table><thead><tr><th>実施日</th><th>氏名</th><th>部署</th><th>判定</th><th></th></tr></thead><tbody>';rs.forEach(function(r){var bc=r.level==='良好'?'bg':'br';var dt=r.date?String(r.date).substring(0,10):'—';h+='<tr><td>'+dt+'</td><td>'+r.name+'</td><td>'+r.dept+'</td><td><span class="bs '+bc+'">'+r.level+'</span></td><td><button class="btn bs2 bp bi" onclick="vd('+r.rowIndex+')"><i class="ti ti-eye" style="font-size:12px"></i>詳細</button></td></tr>';});h+='</tbody></table>';document.getElementById('dl-tbl').innerHTML=h;}
-// DETAIL VIEW
+// SC RESULTS (統合版)
+function loadSC(){setLastSeen('sc');setBadge('badge-sc',0);document.getElementById('sc-list').style.display='block';document.getElementById('sc-detail').style.display='none';document.getElementById('sc-tbl').innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getStressResults',function(d){if(!d.success)return;scD=d.results;renderSC();});}
+function fSC(f,el){scF=f;document.querySelectorAll('#p-sc .fb').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderSC();}
+function renderSC(){var rs=scD;if(scF!=='all')rs=rs.filter(function(r){return r.level===scF;});if(!rs.length){document.getElementById('sc-tbl').innerHTML='<p style="color:var(--tsec);font-size:12px;padding:.5rem">該当なし</p>';return;}var h='<table><thead><tr><th>実施日</th><th>氏名</th><th>部署</th><th>A</th><th>B</th><th>C</th><th>D</th><th>合計</th><th>判定</th><th></th></tr></thead><tbody>';rs.forEach(function(r){var bc=r.level==='良好'?'bg':'br';var dt=r.date?String(r.date).substring(0,10):'—';h+='<tr><td>'+dt+'</td><td>'+r.name+'</td><td>'+r.dept+'</td><td>'+r.aSum+'</td><td>'+r.bSum+'</td><td>'+r.cSum+'</td><td>'+r.dSum+'</td><td>'+r.total+'</td><td><span class="bs '+bc+'">'+r.level+'</span></td><td><button class="btn bs2 bp bi" onclick="vd('+r.rowIndex+')"><i class="ti ti-eye" style="font-size:12px"></i>詳細</button></td></tr>';});h+='</tbody></table>';document.getElementById('sc-tbl').innerHTML=h;}
+// DETAIL VIEW (結果一覧内に表示)
 var qAL=['非常にたくさんの仕事をしなければならない','時間内に仕事が処理しきれない','一生懸命働かなければならない','かなり注意を集中する必要がある','高度の知識や技術が必要なむずかしい仕事だ','勤務時間中はいつも仕事のことを考えていなければならない','からだを大変よく使う仕事だ','自分のペースで仕事ができる','自分で仕事の順番・やり方を決めることができる','職場の仕事の方針に自分の意見を反映できる','自分の技能や知識を仕事で使うことが少ない','私の部署内で意見のくい違いがある','私の部署と他の部署とはうまが合わない','私の職場の雰囲気は友好的である','私の職場の作業環境（騒音、照明、温度、換気など）はよくない','仕事の内容は自分にあっている','働きがいのある仕事だ'];
 var qBL=['活気がわいてくる','元気がいっぱいだ','生き生きする','怒りを感じる','内心腹立たしい','イライラしている','ひどく疲れた','へとへとだ','だるい','気がはりつめている','不安だ','落ち着かない','ゆううつだ','何をするのも面倒だ','物事に集中できない','気分が晴れない','仕事が手につかない','悲しいと感じる','めまいがする','体のふしぶしが痛む','頭が重かったり頭痛がする','首筋や肩がこる','腰が痛い','目が疲れる','動悸や息切れがする','胃腸の具合が悪い','食欲がない','便秘や下痢をする','よく眠れない'];
 var qCL=['上司と気軽に話せる','同僚と気軽に話せる','家族・友人と気軽に話せる','上司が頼りになる','同僚が頼りになる','家族・友人が頼りになる','上司が相談にのってくれる','同僚が相談にのってくれる','家族・友人が相談にのってくれる'];
 var qDL=['仕事に満足だ','家庭生活に満足だ'];
 var aA=['—','そうだ','まあそうだ','ちがう','かなりちがう'],aB=['—','ほとんどなかった','ときどきあった','しばしばあった','ほとんどいつもあった'],aC=['—','非常に','かなり','多少','全くない'],aD=['—','満足','まあ満足','やや不満','不満足'];
-function vd(ri){document.getElementById('dl-card').style.display='none';var dv=document.getElementById('dv');dv.style.display='block';dv.innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getStressDetail&row='+ri,function(data){if(!data.success){toast('エラー','err');return;}var d=data.detail;var bc=d.level==='良好'?'bg':'br';var dt=d.date?String(d.date).substring(0,19):'—';var h='<button class="btn bs2 bi" onclick="bdl()" style="margin-bottom:1rem"><i class="ti ti-arrow-left" style="font-size:13px"></i>一覧に戻る</button>';h+='<div class="card"><div class="card-h"><span class="card-t"><i class="ti ti-user" style="color:var(--pri)"></i> '+d.name+'</span><span class="bs '+bc+'">'+d.level+'</span></div><div class="fg"><div class="fgr"><label>フリガナ</label><div style="font-size:12px">'+(d.kana||'—')+'</div></div><div class="fgr"><label>所属部署</label><div style="font-size:12px">'+(d.dept||'—')+'</div></div><div class="fgr"><label>性別</label><div style="font-size:12px">'+(d.sex||'—')+'</div></div><div class="fgr"><label>実施日時</label><div style="font-size:12px">'+dt+'</div></div></div></div>';h+='<div class="card"><div class="card-h"><span class="card-t">セクション別スコア</span><span class="card-st">合計: '+d.total+'</span></div>';h+=sb('A 仕事要因',d.aSum,68,'var(--pri)');h+=sb('B ストレス反応',d.bSum,116,d.bSum>=77?'var(--ng)':d.bSum>=63?'var(--warn)':'var(--pri)');h+=sb('C サポート',d.cSum,36,'var(--ok)');h+=sb('D 満足度',d.dSum,8,'#8B5CF6');h+='<div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:var(--rs);font-size:11px;color:var(--tsec);line-height:1.8"><strong>判定理由：</strong>';if(d.bSum>=77)h+='B（'+d.bSum+'）≧ 77 → パターン1該当';else if((d.aSum+d.cSum)>=76&&d.bSum>=63)h+='A+C（'+(d.aSum+d.cSum)+'）≧ 76 かつ B（'+d.bSum+'）≧ 63 → パターン2該当';else h+='いずれの基準にも非該当';h+='</div></div>';h+='<div class="card"><div class="card-h"><span class="card-t">過去の回答履歴</span></div><div id="hist"><button class="btn bs2 bp" onclick="lhist(\''+d.name.replace(/'/g,"\\'")+'\')">履歴を表示</button></div></div>';h+=asec('A — あなたの仕事について',d.aSum,68,'A',17,qAL,aA,d.answers);h+=asec('B — 最近1か月の状態',d.bSum,116,'B',29,qBL,aB,d.answers);h+=asec('C — 周りの方々について',d.cSum,36,'C',9,qCL,aC,d.answers);h+=asec('D — 満足度',d.dSum,8,'D',2,qDL,aD,d.answers);dv.innerHTML=h;});}
+function vd(ri){document.getElementById('sc-list').style.display='none';var dv=document.getElementById('sc-detail');dv.style.display='block';dv.innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getStressDetail&row='+ri,function(data){if(!data.success){toast('エラー','err');return;}var d=data.detail;var bc=d.level==='良好'?'bg':'br';var dt=d.date?String(d.date).substring(0,19):'—';var h='<button class="btn bs2 bi" onclick="backSC()" style="margin-bottom:1rem"><i class="ti ti-arrow-left" style="font-size:13px"></i>一覧に戻る</button>';h+='<div class="card"><div class="card-h"><span class="card-t"><i class="ti ti-user" style="color:var(--pri)"></i> '+d.name+'</span><span class="bs '+bc+'">'+d.level+'</span></div><div class="fg"><div class="fgr"><label>フリガナ</label><div style="font-size:12px">'+(d.kana||'—')+'</div></div><div class="fgr"><label>所属部署</label><div style="font-size:12px">'+(d.dept||'—')+'</div></div><div class="fgr"><label>性別</label><div style="font-size:12px">'+(d.sex||'—')+'</div></div><div class="fgr"><label>実施日時</label><div style="font-size:12px">'+dt+'</div></div></div></div>';h+='<div class="card"><div class="card-h"><span class="card-t">セクション別スコア</span><span class="card-st">合計: '+d.total+'</span></div>';h+=sb('A 仕事要因',d.aSum,68,'var(--pri)');h+=sb('B ストレス反応',d.bSum,116,d.bSum>=77?'var(--ng)':d.bSum>=63?'var(--warn)':'var(--pri)');h+=sb('C サポート',d.cSum,36,'var(--ok)');h+=sb('D 満足度',d.dSum,8,'#8B5CF6');h+='<div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:var(--rs);font-size:11px;color:var(--tsec);line-height:1.8"><strong>判定理由：</strong>';if(d.bSum>=77)h+='B（'+d.bSum+'）≧ 77 → パターン1該当';else if((d.aSum+d.cSum)>=76&&d.bSum>=63)h+='A+C（'+(d.aSum+d.cSum)+'）≧ 76 かつ B（'+d.bSum+'）≧ 63 → パターン2該当';else h+='いずれの基準にも非該当';h+='</div></div>';h+='<div class="card"><div class="card-h"><span class="card-t">過去の回答履歴</span></div><div id="hist"><button class="btn bs2 bp" onclick="lhist(\''+d.name.replace(/'/g,"\\'")+'\')">履歴を表示</button></div></div>';h+=asec('A — あなたの仕事について',d.aSum,68,'A',17,qAL,aA,d.answers);h+=asec('B — 最近1か月の状態',d.bSum,116,'B',29,qBL,aB,d.answers);h+=asec('C — 周りの方々について',d.cSum,36,'C',9,qCL,aC,d.answers);h+=asec('D — 満足度',d.dSum,8,'D',2,qDL,aD,d.answers);dv.innerHTML=h;});}
 function sb(l,v,mx,c){var p=Math.round(v/mx*100);return '<div class="sbar"><span class="sl">'+l+'</span><div class="sw"><div class="sf" style="width:'+p+'%;background:'+c+'"></div></div><span class="sv">'+v+'</span></div>';}
 function asec(t,s,mx,pf,cnt,ql,al,ans){var h='<div class="card"><div class="card-h"><span class="card-t">'+t+'</span><span class="card-st">'+s+' / '+mx+'</span></div>';for(var i=1;i<=cnt;i++){var v=ans[pf+i]||0;var tx=al[v]||'未回答';var bg=v<=1?'var(--okL)':v===2?'var(--priL)':v===3?'var(--warnL)':'var(--ngL)';var fg=v<=1?'var(--ok)':v===2?'var(--pri)':v===3?'var(--warn)':'var(--ng)';h+='<div class="dqr"><span class="dqn">'+pf+i+'</span><span class="dqt">'+ql[i-1]+'</span><span class="dqa" style="background:'+bg+';color:'+fg+'">'+tx+'</span></div>';}h+='</div>';return h;}
-function bdl(){document.getElementById('dl-card').style.display='block';document.getElementById('dv').style.display='none';}
+function backSC(){document.getElementById('sc-list').style.display='block';document.getElementById('sc-detail').style.display='none';}
 function lhist(name){document.getElementById('hist').innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getStressHistory&name='+encodeURIComponent(name),function(data){if(!data.success)return;var hs=data.history;if(hs.length<=1){document.getElementById('hist').innerHTML='<p style="font-size:12px;color:var(--tsec)">過去データなし</p>';return;}var h='<table><thead><tr><th>実施日</th><th>A</th><th>B</th><th>C</th><th>D</th><th>合計</th><th>判定</th></tr></thead><tbody>';hs.forEach(function(r){var bc=r.level==='良好'?'bg':'br';var dt=r.date?String(r.date).substring(0,10):'—';h+='<tr><td>'+dt+'</td><td>'+r.aSum+'</td><td>'+r.bSum+'</td><td>'+r.cSum+'</td><td>'+r.dSum+'</td><td>'+r.total+'</td><td><span class="bs '+bc+'">'+r.level+'</span></td></tr>';});h+='</tbody></table>';if(hs.length>=2){var prev=hs[hs.length-2],cur=hs[hs.length-1];var diff=cur.total-prev.total;var ar=diff>0?'↑ +'+diff:diff<0?'↓ '+diff:'→ 変動なし';var cl=diff>0?'var(--ng)':diff<0?'var(--ok)':'var(--tsec)';h+='<div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:var(--rs);font-size:12px">前回比: <strong style="color:'+cl+'">'+ar+'</strong></div>';}document.getElementById('hist').innerHTML=h;});}
 // HEALTH
-function loadHL(){document.getElementById('hl-card').style.display='block';document.getElementById('hl-pdf').style.display='none';document.getElementById('hl-tbl').innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getHealthRecords',function(d){if(!d.success)return;hlD=d.records;renderHL();});}
+function loadHL(){setLastSeen('hl');setBadge('badge-hl',0);document.getElementById('hl-card').style.display='block';document.getElementById('hl-pdf').style.display='none';document.getElementById('hl-tbl').innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getHealthRecords',function(d){if(!d.success)return;hlD=d.records;renderHL();});}
 function fHL(f,el){document.querySelectorAll('#p-health .fb').forEach(function(b){b.classList.remove('on');});el.classList.add('on');if(f==='dept'){document.getElementById('hl-dept').style.display='block';}else{document.getElementById('hl-dept').style.display='none';document.getElementById('hl-dept-sel').value='';}renderHL();}
 function renderHL(){var rs=hlD;var dept=document.getElementById('hl-dept-sel').value;if(dept)rs=rs.filter(function(r){return r.dept===dept;});if(!rs.length){document.getElementById('hl-tbl').innerHTML='<p style="color:var(--tsec);font-size:12px;padding:.5rem">該当なし</p>';return;}var h='<table><thead><tr><th>提出日</th><th>氏名</th><th>部署</th><th>ファイル</th><th></th></tr></thead><tbody>';rs.forEach(function(r){var dt=r.date?String(r.date).substring(0,10):'—';h+='<tr><td>'+dt+'</td><td>'+r.name+'</td><td>'+r.dept+'</td><td>'+r.fileName+'</td><td><button class="btn bs2 bp bi" onclick="vpdf(\''+r.fileId+"','"+r.name.replace(/'/g,"\\'")+"')\"><i class=\"ti ti-file-text\" style=\"font-size:12px\"></i>PDF表示</button></td></tr>";});h+='</tbody></table>';document.getElementById('hl-tbl').innerHTML=h;}
 function vpdf(fid,name){document.getElementById('hl-card').style.display='none';var pv=document.getElementById('hl-pdf');pv.style.display='block';pv.innerHTML='<div class="ld"><i class="ti ti-loader-2"></i></div>';gGet('getHealthFile&fileId='+fid,function(d){if(!d.success){toast('ファイル取得エラー','err');return;}pv.innerHTML='<button class="btn bs2 bi" onclick="bhl()" style="margin-bottom:1rem"><i class="ti ti-arrow-left" style="font-size:13px"></i>一覧に戻る</button><div class="card"><div class="card-h"><span class="card-t"><i class="ti ti-file-text" style="color:var(--pri)"></i> '+name+' — 健康診断結果</span></div><iframe src="'+d.url+'" class="pdf-frame"></iframe></div>';});}
 function bhl(){document.getElementById('hl-card').style.display='block';document.getElementById('hl-pdf').style.display='none';}
-(function(){if(GAS)loadDash();})();
+(function(){loadDash();checkNewAll();})();
 </script>
 </body>
 </html>
