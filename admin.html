@@ -40,6 +40,8 @@ html,body{height:100%;font-family:'Noto Sans JP',sans-serif;background:var(--bg)
 .top-r{display:flex;gap:8px}
 .top-r .ib{width:34px;height:34px;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;color:var(--tsec);cursor:pointer;border:1px solid var(--border)}
 .top-r .ib:hover{background:var(--bg)}
+.progress-wrap{height:3px;background:var(--border);width:100%;flex-shrink:0;overflow:hidden}
+.progress-bar{height:100%;width:0%;background:var(--pri);border-radius:0 3px 3px 0;transition:width .3s ease}
 .cnt{flex:1;overflow-y:auto;padding:1.25rem}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);padding:1.25rem;margin-bottom:1rem}
 .card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
@@ -82,8 +84,6 @@ tr:hover td{background:var(--hover)}
 .ld{text-align:center;padding:2rem;color:var(--tsec);font-size:12px}
 .ld i{font-size:22px;display:block;margin-bottom:6px;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-.refreshing{display:inline-block;animation:spin .8s linear infinite}
-@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .toast{position:fixed;top:16px;right:16px;padding:10px 18px;border-radius:var(--rs);color:#fff;font-size:12px;font-weight:500;z-index:9999;opacity:0;transform:translateY(-10px);transition:all .3s}
 .toast.show{opacity:1;transform:translateY(0)}.toast.ok{background:var(--ok)}.toast.err{background:var(--ng)}
 .sbar{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--blight)}.sbar:last-child{border-bottom:none}
@@ -123,6 +123,7 @@ tr:hover td{background:var(--hover)}
 </div>
 <div class="main">
   <div class="top"><button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button><div class="top-title" id="tt">ダッシュボード</div><div class="top-r"><div class="ib" id="refresh-btn" title="データを最新に更新" onclick="doRefresh()" style="cursor:pointer"><i class="ti ti-refresh" id="refresh-icon" style="font-size:18px"></i></div></div></div>
+  <div class="progress-wrap" id="progress-wrap" style="display:none"><div class="progress-bar" id="progress-bar"></div></div>
   <div class="cnt">
     <!-- DASH -->
     <div class="page on" id="p-dash">
@@ -201,10 +202,8 @@ function showFromCache(id){
 
 // REFRESH
 function doRefresh(){
-  var icon=document.getElementById('refresh-icon');
-  icon.classList.add('refreshing');
+  showProgress(10);
   fetchAllData(function(){
-    icon.classList.remove('refreshing');
     var a=document.querySelector('.page.on');
     if(a){var id=a.id.replace('p-','');showFromCache(id);}
     toast('最新データに更新しました','ok');
@@ -217,17 +216,24 @@ function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.cla
 
 // FETCH ALL DATA
 function fetchAllData(cb){
+  showProgress(30);
   gGet('getAllData',function(d){
-    if(!d.success){toast('データ取得エラー','err');if(cb)cb();return;}
+    showProgress(70);
+    if(!d.success){toast('データ取得エラー','err');hideProgress();if(cb)cb();return;}
     if(d.dashboard)cache.dash=d.dashboard;
     if(d.stressResults&&d.stressResults.success)scD=d.stressResults.results;
     if(d.healthRecords&&d.healthRecords.success)hlD=d.healthRecords.records;
     if(d.employees&&d.employees.success)empD=d.employees.employees;
+    showProgress(90);
     dataLoaded=true;
     checkNewFromCache();
+    showProgress(100);
+    setTimeout(function(){hideProgress();},400);
     if(cb)cb();
   });
 }
+function showProgress(pct){var w=document.getElementById('progress-wrap');var b=document.getElementById('progress-bar');w.style.display='block';b.style.width=pct+'%';}
+function hideProgress(){var w=document.getElementById('progress-wrap');var b=document.getElementById('progress-bar');b.style.width='100%';setTimeout(function(){w.style.display='none';b.style.width='0%';},400);}
 
 // NEW BADGE
 function getLastSeen(key){return localStorage.getItem('health_seen_'+key)||'';}
@@ -312,10 +318,8 @@ function deptName(d){var m={'メディアリサーチ事業部 ANNEXE':'ANNEXE',
 
 // INIT: 一括取得して全ページを描画
 (function(){
-  var icon=document.getElementById('refresh-icon');
-  icon.classList.add('refreshing');
+  showProgress(10);
   fetchAllData(function(){
-    icon.classList.remove('refreshing');
     renderDash();
   });
 })();
